@@ -143,8 +143,15 @@ def build_cli(args):
     elif hasattr(args, 'format') and args.format:
         format_hint = args.format
 
+    # Prepare CLI overrides
+    cli_overrides = {}
+    if hasattr(args, 'agent') and args.agent:
+        cli_overrides['agent'] = args.agent
+    if hasattr(args, 'prompt') and args.prompt:
+        cli_overrides['prompt'] = args.prompt
+
     try:
-        build_from_agentfile(str(agentfile_path), str(output_dir), format_hint)
+        build_from_agentfile(str(agentfile_path), str(output_dir), format_hint, cli_overrides)
 
         if args.build_docker:
             print("\n🐳 Building Docker image...")
@@ -174,6 +181,8 @@ def build_parser(subparsers):
     parser.add_argument(
         "--from-yaml", action="store_true", help="Build from YAML Agentfile format (same as --format yaml)"
     )
+    parser.add_argument("--agent", help="Override agent name for CLI execution")
+    parser.add_argument("--prompt", help="Override agent prompt/instruction for CLI execution")
     parser.add_argument("path", nargs="?", default=".", help="Build context (directory or URL)")
     parser.usage = "agentman build [OPTIONS] PATH | URL | -"
     runtime_options(parser, "build")
@@ -207,9 +216,16 @@ def run_cli(args):
         elif hasattr(args, 'format') and args.format:
             format_hint = args.format
 
+        # Prepare CLI overrides
+        cli_overrides = {}
+        if hasattr(args, 'agent') and args.agent:
+            cli_overrides['agent'] = args.agent
+        if hasattr(args, 'prompt') and args.prompt:
+            cli_overrides['prompt'] = args.prompt
+
         try:
             print("🔨 Building agent files...")
-            build_from_agentfile(str(agentfile_path), str(output_dir), format_hint)
+            build_from_agentfile(str(agentfile_path), str(output_dir), format_hint, cli_overrides)
 
             print("\n🐳 Building Docker image...")
             docker_cmd = ["docker", "build", "-t", args.tag, str(output_dir)]
@@ -308,6 +324,8 @@ def run_parser(subparsers):
     parser.add_argument(
         "--from-yaml", action="store_true", help="Build from YAML Agentfile format (same as --format yaml)"
     )
+    parser.add_argument("--agent", help="Override agent name for CLI execution")
+    parser.add_argument("--prompt", help="Override agent prompt/instruction for CLI execution")
     parser.add_argument("--path", default=".", help="Build context (directory or URL) when building from Agentfile")
     parser.add_argument("-i", "--interactive", action="store_true", help="Run container interactively")
     parser.add_argument(

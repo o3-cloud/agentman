@@ -5,7 +5,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
-from agentman.agentfile_parser import AgentfileConfig, AgentfileParser
+from agentman.agentfile_parser import AgentfileConfig, AgentfileParser, Agent
 from agentman.frameworks import AgnoFramework, FastAgentFramework
 from agentman.yaml_parser import AgentfileYamlParser, parse_agentfile
 
@@ -230,7 +230,7 @@ class AgentBuilder:
             print(f"⚠️  Validation skipped: {e}")
 
 
-def build_from_agentfile(agentfile_path: str, output_dir: str = "output", format_hint: str = None) -> None:
+def build_from_agentfile(agentfile_path: str, output_dir: str = "output", format_hint: str = None, cli_overrides: dict = None) -> None:
     """Build agent files from an Agentfile."""
     if format_hint == "yaml":
         parser = AgentfileYamlParser()
@@ -241,6 +241,19 @@ def build_from_agentfile(agentfile_path: str, output_dir: str = "output", format
     else:
         # Auto-detect format
         config = parse_agentfile(agentfile_path)
+
+    # Apply CLI overrides if provided
+    if cli_overrides:
+        agent_name = cli_overrides.get('agent')
+        prompt = cli_overrides.get('prompt')
+        
+        if agent_name and prompt:
+            if agent_name in config.agents:
+                # Override existing agent instruction
+                config.agents[agent_name].instruction = prompt
+            else:
+                # Create new agent with CLI parameters
+                config.agents[agent_name] = Agent(name=agent_name, instruction=prompt, default=True)
 
     # Extract source directory from agentfile path
     source_dir = Path(agentfile_path).parent
