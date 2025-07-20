@@ -150,7 +150,7 @@ def build_cli(args):
             cli_overrides['agent_name'] = args.agent
         if hasattr(args, 'prompt') and args.prompt:
             cli_overrides['agent_prompt'] = args.prompt
-            
+
         build_from_agentfile(str(agentfile_path), str(output_dir), format_hint, cli_overrides)
 
         if args.build_docker:
@@ -181,12 +181,8 @@ def build_parser(subparsers):
     parser.add_argument(
         "--from-yaml", action="store_true", help="Build from YAML Agentfile format (same as --format yaml)"
     )
-    parser.add_argument(
-        "--agent", help="Override or create agent with specified name"
-    )
-    parser.add_argument(
-        "--prompt", help="Override agent prompt with text string or file path"
-    )
+    parser.add_argument("--agent", help="Override or create agent with specified name")
+    parser.add_argument("--prompt", help="Override agent prompt with text string or file path")
     parser.add_argument("path", nargs="?", default=".", help="Build context (directory or URL)")
     parser.usage = "agentman build [OPTIONS] PATH | URL | -"
     runtime_options(parser, "build")
@@ -228,7 +224,7 @@ def run_cli(args):
                 cli_overrides['agent_name'] = args.agent
             if hasattr(args, 'prompt') and args.prompt:
                 cli_overrides['agent_prompt'] = args.prompt
-                
+
             build_from_agentfile(str(agentfile_path), str(output_dir), format_hint, cli_overrides)
 
             print("\n🐳 Building Docker image...")
@@ -328,12 +324,8 @@ def run_parser(subparsers):
     parser.add_argument(
         "--from-yaml", action="store_true", help="Build from YAML Agentfile format (same as --format yaml)"
     )
-    parser.add_argument(
-        "--agent", help="Override or create agent with specified name"
-    )
-    parser.add_argument(
-        "--prompt", help="Override agent prompt with text string or file path"
-    )
+    parser.add_argument("--agent", help="Override or create agent with specified name")
+    parser.add_argument("--prompt", help="Override agent prompt with text string or file path")
     parser.add_argument("--path", default=".", help="Build context (directory or URL) when building from Agentfile")
     parser.add_argument("-i", "--interactive", action="store_true", help="Run container interactively")
     parser.add_argument(

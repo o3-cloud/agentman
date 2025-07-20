@@ -235,25 +235,25 @@ def _is_file_path(prompt_value: str, source_dir: Path) -> bool:
     """Check if a prompt value is a file path or text string."""
     # If it looks like a file path and the file exists, treat it as a file
     prompt_path = Path(prompt_value)
-    
+
     # Check for absolute path
     if prompt_path.is_absolute() and prompt_path.exists():
         return True
-        
+
     # Check for relative path from source directory
     relative_path = source_dir / prompt_value
     if relative_path.exists():
         return True
-    
+
     # If it contains newlines or is very long, likely text content
     if '\n' in prompt_value or len(prompt_value) > 200:
         return False
-        
+
     # If it has common file extensions, treat as file path (even if not found)
     common_extensions = {'.txt', '.md', '.py', '.json', '.yaml', '.yml'}
     if any(prompt_value.lower().endswith(ext) for ext in common_extensions):
         return True
-    
+
     # Default to treating as text string
     return False
 
@@ -261,18 +261,18 @@ def _is_file_path(prompt_value: str, source_dir: Path) -> bool:
 def _read_prompt_file(file_path: str, source_dir: Path) -> str:
     """Read prompt content from a file path."""
     prompt_path = Path(file_path)
-    
+
     # Try absolute path first
     if prompt_path.is_absolute() and prompt_path.exists():
         with open(prompt_path, 'r', encoding='utf-8') as f:
             return f.read()
-    
+
     # Try relative to source directory
     relative_path = source_dir / file_path
     if relative_path.exists():
         with open(relative_path, 'r', encoding='utf-8') as f:
             return f.read()
-    
+
     # File not found, raise error
     raise FileNotFoundError(f"Prompt file not found: {file_path}")
 
@@ -281,10 +281,10 @@ def _apply_cli_overrides(config: AgentfileConfig, cli_overrides: dict, source_di
     """Apply CLI overrides to the agent configuration."""
     agent_name = cli_overrides.get('agent_name')
     agent_prompt = cli_overrides.get('agent_prompt')
-    
+
     if not agent_name or not agent_prompt:
         return config
-    
+
     # Determine if prompt is file path or text string
     if _is_file_path(agent_prompt, source_dir):
         try:
@@ -294,7 +294,7 @@ def _apply_cli_overrides(config: AgentfileConfig, cli_overrides: dict, source_di
             prompt_content = agent_prompt
     else:
         prompt_content = agent_prompt
-    
+
     # Find existing agent by name or create new one
     agent_found = False
     for agent in config.agents:
@@ -305,29 +305,27 @@ def _apply_cli_overrides(config: AgentfileConfig, cli_overrides: dict, source_di
             agent_found = True
             print(f"✅ Overriding agent '{agent_name}' with CLI prompt")
             break
-    
+
     if not agent_found:
         # Create new agent with the name and prompt
         # We need to import the Agent class - let's assume it exists in the config
         from agentman.agentfile_parser import Agent
-        
-        new_agent = Agent(
-            name=agent_name,
-            instruction=prompt_content,
-            default=True
-        )
+
+        new_agent = Agent(name=agent_name, instruction=prompt_content, default=True)
         config.agents.append(new_agent)
         print(f"✅ Created new agent '{agent_name}' with CLI prompt")
-    
+
     # Make sure only the CLI agent is default
     for agent in config.agents:
         if agent.name != agent_name:
             agent.default = False
-    
+
     return config
 
 
-def build_from_agentfile(agentfile_path: str, output_dir: str = "output", format_hint: str = None, cli_overrides: dict = None) -> None:
+def build_from_agentfile(
+    agentfile_path: str, output_dir: str = "output", format_hint: str = None, cli_overrides: dict = None
+) -> None:
     """Build agent files from an Agentfile."""
     if format_hint == "yaml":
         parser = AgentfileYamlParser()
@@ -341,7 +339,7 @@ def build_from_agentfile(agentfile_path: str, output_dir: str = "output", format
 
     # Extract source directory from agentfile path
     source_dir = Path(agentfile_path).parent
-    
+
     # Apply CLI overrides if provided
     if cli_overrides:
         config = _apply_cli_overrides(config, cli_overrides, source_dir)
