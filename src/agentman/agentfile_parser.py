@@ -239,6 +239,40 @@ class Chain:
 
 
 @dataclass
+class Parallel:
+    """Represents a parallel workflow."""
+
+    name: str
+    fan_out: List[str] = field(default_factory=list)
+    fan_in: Optional[str] = None
+    instruction: Optional[str] = None
+    include_request: bool = True
+    default: bool = False
+
+    def to_decorator_string(self) -> str:
+        """Generate the @fast.parallel decorator string."""
+        params = [f'name="{self.name}"']
+
+        if self.fan_out:
+            fan_out_str = "[" + ", ".join(f'"{a}"' for a in self.fan_out) + "]"
+            params.append(f"fan_out={fan_out_str}")
+
+        if self.fan_in:
+            params.append(f'fan_in="{self.fan_in}"')
+
+        if self.instruction:
+            params.append(f'instruction="""{self.instruction}"""')
+
+        if not self.include_request:
+            params.append("include_request=False")
+
+        if self.default:
+            params.append("default=True")
+
+        return "@fast.parallel(\n    " + ",\n    ".join(params) + "\n)"
+
+
+@dataclass
 class Orchestrator:
     """Represents an orchestrator workflow."""
 
@@ -329,6 +363,7 @@ class AgentfileConfig:
     agents: Dict[str, Agent] = field(default_factory=dict)
     routers: Dict[str, Router] = field(default_factory=dict)
     chains: Dict[str, Chain] = field(default_factory=dict)
+    parallels: Dict[str, Parallel] = field(default_factory=dict)
     orchestrators: Dict[str, Orchestrator] = field(default_factory=dict)
     secrets: List[SecretType] = field(default_factory=list)
     expose_ports: List[int] = field(default_factory=list)
@@ -433,6 +468,8 @@ class AgentfileParser:
             self._handle_router(parts)
         elif instruction == "CHAIN":
             self._handle_chain(parts)
+        elif instruction == "PARALLEL":
+            self._handle_parallel(parts)
         elif instruction == "ORCHESTRATOR":
             self._handle_orchestrator(parts)
         elif instruction == "SECRET":
@@ -484,6 +521,9 @@ class AgentfileParser:
             "SERVERS",
             "AGENTS",
             "SEQUENCE",
+            "FAN_OUT",
+            "FAN_IN",
+            "INCLUDE_REQUEST",
             "TRANSPORT",
             "URL",
             "USE_HISTORY",
@@ -606,6 +646,15 @@ class AgentfileParser:
         name = self._unquote(parts[1])
         self.config.chains[name] = Chain(name=name)
         self.current_context = "chain"
+        self.current_item = name
+
+    def _handle_parallel(self, parts: List[str]):
+        """Handle PARALLEL instruction."""
+        if len(parts) < 2:
+            raise ValueError("PARALLEL requires a parallel name")
+        name = self._unquote(parts[1])
+        self.config.parallels[name] = Parallel(name=name)
+        self.current_context = "parallel"
         self.current_item = name
 
     def _handle_orchestrator(self, parts: List[str]):
@@ -776,6 +825,8 @@ class AgentfileParser:
             self._handle_router_sub_instruction(instruction, parts)
         elif self.current_context == "chain":
             self._handle_chain_sub_instruction(instruction, parts)
+        elif self.current_context == "parallel":
+            self._handle_parallel_sub_instruction(instruction, parts)
         elif self.current_context == "orchestrator":
             self._handle_orchestrator_sub_instruction(instruction, parts)
         elif self.current_context == "secret":
@@ -931,6 +982,31 @@ class AgentfileParser:
             if len(parts) < 2:
                 raise ValueError("DEFAULT requires true/false")
             chain.default = self._unquote(parts[1]).lower() in ['true', '1', 'yes']
+
+    def _handle_parallel_sub_instruction(self, instruction: str, parts: List[str]):
+        """Handle sub-instructions for PARALLEL context."""
+        parallel = self.config.parallels[self.current_item]
+
+        if instruction == "FAN_OUT":
+            if len(parts) < 2:
+                raise ValueError("FAN_OUT requires at least one agent name")
+            parallel.fan_out = [self._unquote(part) for part in parts[1:]]
+        elif instruction == "FAN_IN":
+            if len(parts) < 2:
+                raise ValueError("FAN_IN requires an agent name")
+            parallel.fan_in = self._unquote(parts[1])
+        elif instruction == "INSTRUCTION":
+            if len(parts) < 2:
+                raise ValueError("INSTRUCTION requires instruction text")
+            parallel.instruction = self._unquote(' '.join(parts[1:]))
+        elif instruction == "INCLUDE_REQUEST":
+            if len(parts) < 2:
+                raise ValueError("INCLUDE_REQUEST requires true/false")
+            parallel.include_request = self._unquote(parts[1]).lower() in ['true', '1', 'yes']
+        elif instruction == "DEFAULT":
+            if len(parts) < 2:
+                raise ValueError("DEFAULT requires true/false")
+            parallel.default = self._unquote(parts[1]).lower() in ['true', '1', 'yes']
 
     def _handle_orchestrator_sub_instruction(self, instruction: str, parts: List[str]):
         """Handle sub-instructions for ORCHESTRATOR context."""

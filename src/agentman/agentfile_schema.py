@@ -145,6 +145,79 @@ AGENTFILE_YAML_SCHEMA: Dict[str, Any] = {
                 "additionalProperties": False,
             },
         },
+        "parallels": {
+            "type": "array",
+            "description": "List of parallel workflows",
+            "items": {
+                "type": "object",
+                "required": ["name", "fan_out"],
+                "properties": {
+                    "name": {"type": "string", "description": "Name of the parallel workflow"},
+                    "fan_out": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "minItems": 1,
+                        "description": "List of agent names to execute in parallel",
+                    },
+                    "fan_in": {
+                        "type": "string",
+                        "description": "Agent name to aggregate results (optional - default passthrough used if not specified)",
+                    },
+                    "instruction": {
+                        "type": "string",
+                        "description": "Custom instruction for the parallel workflow",
+                    },
+                    "include_request": {
+                        "type": "boolean",
+                        "default": True,
+                        "description": "Whether to include the original request when sending to fan-in agent",
+                    },
+                    "default": {
+                        "type": "boolean",
+                        "default": False,
+                        "description": "Whether this is the default workflow",
+                    },
+                },
+                "additionalProperties": False,
+            },
+        },
+        "chains": {
+            "type": "array",
+            "description": "List of chain workflows",
+            "items": {
+                "type": "object",
+                "required": ["name", "sequence"],
+                "properties": {
+                    "name": {"type": "string", "description": "Name of the chain workflow"},
+                    "sequence": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "minItems": 1,
+                        "description": "List of agent names to execute in sequence",
+                    },
+                    "instruction": {
+                        "type": "string",
+                        "description": "Custom instruction for the chain workflow",
+                    },
+                    "cumulative": {
+                        "type": "boolean",
+                        "default": False,
+                        "description": "Whether to accumulate context across chain steps",
+                    },
+                    "continue_with_final": {
+                        "type": "boolean",
+                        "default": True,
+                        "description": "Whether to continue with the final agent result",
+                    },
+                    "default": {
+                        "type": "boolean",
+                        "default": False,
+                        "description": "Whether this is the default workflow",
+                    },
+                },
+                "additionalProperties": False,
+            },
+        },
         "command": {
             "type": "array",
             "items": {"type": "string"},
