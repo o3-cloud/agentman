@@ -91,7 +91,9 @@ class Agent:
 
     def to_decorator_string(self, default_model: Optional[str] = None, base_path: Optional[str] = None) -> str:
         """Generate the @fast.agent decorator string."""
-        params = [f'name="{self.name}"', f'instruction="""{self.instruction}"""']
+        # Escape quotes in the instruction to prevent breaking the decorator
+        escaped_instruction = self.instruction.replace('"""', '\\"\\"\\"')
+        params = [f'name="{self.name}"', f'instruction="""{escaped_instruction}"""']
 
         if self.servers:
             servers_str = "[" + ", ".join(f'"{s}"' for s in self.servers) + "]"
@@ -196,7 +198,9 @@ class Router:
             params.append(f'model="{model_to_use}"')
 
         if self.instruction:
-            params.append(f'instruction="""{self.instruction}"""')
+            # Escape quotes in the instruction to prevent breaking the decorator
+            escaped_instruction = self.instruction.replace('"""', '\\"""')
+            params.append(f'instruction="""{escaped_instruction}"""')
 
         if self.default:
             params.append("default=True")
@@ -224,7 +228,9 @@ class Chain:
             params.append(f"sequence={sequence_str}")
 
         if self.instruction:
-            params.append(f'instruction="""{self.instruction}"""')
+            # Escape quotes in the instruction to prevent breaking the decorator
+            escaped_instruction = self.instruction.replace('"""', '\\"""')
+            params.append(f'instruction="""{escaped_instruction}"""')
 
         if self.cumulative:
             params.append("cumulative=True")
@@ -261,7 +267,9 @@ class Parallel:
             params.append(f'fan_in="{self.fan_in}"')
 
         if self.instruction:
-            params.append(f'instruction="""{self.instruction}"""')
+            # Escape quotes in the instruction to prevent breaking the decorator
+            escaped_instruction = self.instruction.replace('"""', '\\"""')
+            params.append(f'instruction="""{escaped_instruction}"""')
 
         if not self.include_request:
             params.append("include_request=False")
@@ -299,7 +307,9 @@ class Orchestrator:
             params.append(f'model="{model_to_use}"')
 
         if self.instruction:
-            params.append(f'instruction="""{self.instruction}"""')
+            # Escape quotes in the instruction to prevent breaking the decorator
+            escaped_instruction = self.instruction.replace('"""', '\\"""')
+            params.append(f'instruction="""{escaped_instruction}"""')
 
         if self.plan_type != "full":
             params.append(f'plan_type="{self.plan_type}"')
@@ -653,6 +663,8 @@ class AgentfileParser:
         if len(parts) < 2:
             raise ValueError("PARALLEL requires a parallel name")
         name = self._unquote(parts[1])
+        if name in self.config.parallels:
+            raise ValueError(f"Parallel workflow '{name}' already exists")
         self.config.parallels[name] = Parallel(name=name)
         self.current_context = "parallel"
         self.current_item = name
@@ -990,7 +1002,12 @@ class AgentfileParser:
         if instruction == "FAN_OUT":
             if len(parts) < 2:
                 raise ValueError("FAN_OUT requires at least one agent name")
-            parallel.fan_out = [self._unquote(part) for part in parts[1:]]
+            agent_names = [self._unquote(part) for part in parts[1:]]
+            if not agent_names:  # Validate early that fan_out is non-empty
+                raise ValueError("FAN_OUT requires at least one agent name")
+            if len(agent_names) != len(set(agent_names)):
+                raise ValueError("FAN_OUT agent names must be unique")
+            parallel.fan_out = agent_names
         elif instruction == "FAN_IN":
             if len(parts) < 2:
                 raise ValueError("FAN_IN requires an agent name")
