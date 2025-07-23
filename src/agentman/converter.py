@@ -132,6 +132,24 @@ def config_to_yaml_dict(config: AgentfileConfig) -> Dict[str, Any]:
             chains_list.append(chain_dict)
         yaml_data["chains"] = chains_list
 
+    # Parallels
+    if config.parallels:
+        parallels_list = []
+        for parallel in config.parallels.values():
+            parallel_dict = {"name": parallel.name}
+            if parallel.fan_out:
+                parallel_dict["fan_out"] = parallel.fan_out
+            if parallel.fan_in:
+                parallel_dict["fan_in"] = parallel.fan_in
+            if parallel.instruction:
+                parallel_dict["instruction"] = parallel.instruction
+            if not parallel.include_request:
+                parallel_dict["include_request"] = parallel.include_request
+            if parallel.default:
+                parallel_dict["default"] = parallel.default
+            parallels_list.append(parallel_dict)
+        yaml_data["parallels"] = parallels_list
+
     # Orchestrators
     if config.orchestrators:
         orchestrators_list = []

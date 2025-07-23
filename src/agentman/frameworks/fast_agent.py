@@ -39,6 +39,10 @@ class FastAgentFramework(BaseFramework):
         for chain in self.config.chains.values():
             lines.append(chain.to_decorator_string())
 
+        # Parallel definitions
+        for parallel in self.config.parallels.values():
+            lines.append(parallel.to_decorator_string())
+
         # Orchestrator definitions
         for orchestrator in self.config.orchestrators.values():
             lines.append(orchestrator.to_decorator_string(self.config.default_model))
