@@ -517,6 +517,32 @@ chains:
   cumulative: true
 ```
 
+**Parallels** (Concurrent execution with fan-out/fan-in):
+
+*Dockerfile format:*
+```dockerfile
+PARALLEL translate_workflow
+FAN_OUT translate_fr translate_de translate_es
+FAN_IN aggregator
+INSTRUCTION Coordinate parallel translation tasks
+INCLUDE_REQUEST true
+DEFAULT false
+```
+
+*YAML format:*
+```yaml
+parallels:
+- name: translate_workflow
+  fan_out:
+  - translate_fr
+  - translate_de
+  - translate_es
+  fan_in: aggregator
+  instruction: Coordinate parallel translation tasks
+  include_request: true
+  default: false
+```
+
 **Routers** (Conditional routing):
 
 *Dockerfile format:*
@@ -811,6 +837,43 @@ agents:
             maximum: 1
         required: [sentiment, confidence]
 ```
+
+### 6. Parallel Translation Workflow
+
+Demonstrates concurrent agent execution using the @fast.parallel decorator with fan-out/fan-in patterns for multilingual content processing.
+
+**Project Structure:**
+```
+parallel-translation/
+├── Agentfile           # Dockerfile format with parallel workflow
+├── Agentfile.yml       # YAML format (same functionality)
+└── agent/              # Generated files
+    ├── agent.py
+    └── ...
+```
+
+**Key Features:**
+- **Concurrent Translation**: Parallel execution of multiple translation agents (French, German, Spanish)
+- **Fan-out Pattern**: Distributes content to multiple translation agents simultaneously
+- **Chain Integration**: Combines URL fetching → social media generation → parallel translation
+- **Both Format Support**: Works with Dockerfile and YAML Agentfile formats
+
+**Workflow:**
+1. **URL Fetcher Agent**: Summarizes content from provided URLs
+2. **Social Media Agent**: Creates 280-character social media posts
+3. **Parallel Translation**: Simultaneously translates to French, German, and Spanish
+4. **Chain Coordination**: `url_fetcher` → `social_media` → `translate` (parallel workflow)
+
+**Example Usage:**
+```bash
+# Build and run with auto-detection
+agentman build examples/parallel-translation
+agentman run --from-agentfile examples/parallel-translation
+
+# Provide a URL when prompted to see the full pipeline in action
+```
+
+This example showcases how parallel workflows can significantly reduce processing time for tasks that can be executed concurrently, while maintaining clean separation of concerns between different agents.
 
 ## 🔧 Advanced Configuration
 

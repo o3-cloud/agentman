@@ -1,0 +1,39 @@
+# Parallel Translation Example Agentfile
+FROM ghcr.io/o3-cloud/agentman/base:main
+FRAMEWORK fast-agent
+MODEL sonnet
+
+# MCP server for URL fetching
+MCP_SERVER fetch
+COMMAND uvx
+ARGS mcp-server-fetch
+TRANSPORT stdio
+
+# URL fetcher agent
+AGENT url_fetcher
+INSTRUCTION Given a URL, provide a complete and comprehensive summary
+SERVERS fetch
+
+# Social media post writer agent
+AGENT social_media
+INSTRUCTION Write a 280 character social media post for any given text. Respond only with the post, never use hashtags.
+
+# Translation agents
+AGENT translate_fr
+INSTRUCTION Translate the text to French
+
+AGENT translate_de
+INSTRUCTION Translate the text to German
+
+AGENT translate_es
+INSTRUCTION Translate the text to Spanish
+
+# Parallel workflow for translations
+PARALLEL translate
+FAN_OUT translate_fr translate_de translate_es
+
+# Chain that connects url_fetcher -> social_media -> translate (parallel)
+CHAIN post_writer
+SEQUENCE url_fetcher social_media translate
+
+CMD ["python", "agent.py"]

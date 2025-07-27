@@ -5,20 +5,21 @@ from typing import Any, Dict, List, Union
 
 import yaml
 
-from agentman.agentfile_parser import (
+from agentman.agentfile_models import (
     Agent,
     AgentfileConfig,
-    AgentfileParser,
     Chain,
     DockerfileInstruction,
     MCPServer,
     Orchestrator,
     OutputFormat,
+    Parallel,
     Router,
     SecretContext,
     SecretValue,
     expand_env_vars,
 )
+from agentman.agentfile_parser import AgentfileParser
 
 
 class AgentfileYamlParser:
@@ -73,9 +74,10 @@ class AgentfileYamlParser:
         # Parse all agents
         self._parse_agents(agents_to_parse)
 
-        # Parse routers, chains, and orchestrators
+        # Parse routers, chains, parallels, and orchestrators
         self._parse_routers(data.get('routers', []))
         self._parse_chains(data.get('chains', []))
+        self._parse_parallels(data.get('parallels', []))
         self._parse_orchestrators(data.get('orchestrators', []))
 
         # Parse command
@@ -275,6 +277,40 @@ class AgentfileYamlParser:
                 chain.default = bool(chain_config['default'])
 
             self.config.chains[name] = chain
+
+    def _parse_parallels(self, parallels_config: List[Dict[str, Any]]):
+        """Parse parallels configuration."""
+        for parallel_config in parallels_config:
+            if 'name' not in parallel_config:
+                raise ValueError("Parallel must have a 'name' field")
+
+            name = parallel_config['name']
+            parallel = Parallel(name=name)
+
+            if 'fan_out' in parallel_config:
+                fan_out = parallel_config['fan_out']
+                if isinstance(fan_out, list):
+                    if not fan_out:  # Validate early that fan_out is non-empty
+                        raise ValueError("Parallel 'fan_out' requires at least one agent name")
+                    if len(fan_out) != len(set(fan_out)):
+                        raise ValueError("Parallel 'fan_out' agent names must be unique")
+                    parallel.fan_out = fan_out
+                else:
+                    raise ValueError("Parallel 'fan_out' must be a list")
+
+            if 'fan_in' in parallel_config:
+                parallel.fan_in = parallel_config['fan_in']
+
+            if 'instruction' in parallel_config:
+                parallel.instruction = parallel_config['instruction']
+
+            if 'include_request' in parallel_config:
+                parallel.include_request = bool(parallel_config['include_request'])
+
+            if 'default' in parallel_config:
+                parallel.default = bool(parallel_config['default'])
+
+            self.config.parallels[name] = parallel
 
     def _parse_orchestrators(self, orchestrators_config: List[Dict[str, Any]]):
         """Parse orchestrators configuration."""

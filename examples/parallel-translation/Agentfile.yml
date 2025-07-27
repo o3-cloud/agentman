@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: Agent
+base:
+  model: anthropic/claude-3-sonnet-20241022
+  framework: fast-agent
+mcp_servers:
+- name: fetch
+  command: uvx
+  args:
+  - mcp-server-fetch
+  transport: stdio
+agents:
+- name: url_fetcher
+  instruction: Given a URL, provide a complete and comprehensive summary
+  servers:
+  - fetch
+- name: social_media
+  instruction: Write a 280 character social media post for any given text. Respond
+    only with the post, never use hashtags.
+- name: translate_fr
+  instruction: Translate the text to French
+- name: translate_de
+  instruction: Translate the text to German
+- name: translate_es
+  instruction: Translate the text to Spanish
+parallels:
+- name: translate
+  fan_out:
+  - translate_fr
+  - translate_de
+  - translate_es
+chains:
+- name: post_writer
+  sequence:
+  - url_fetcher
+  - social_media
+  - translate
+command: ["python", "agent.py"]
