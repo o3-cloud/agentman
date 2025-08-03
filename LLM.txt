@@ -1,0 +1,38 @@
+Agentman Installation & Setup Instructions (OSX & Linux)
+
+# Step 1: Install uv (if not already installed)
+
+## macOS
+curl -Ls https://astral.sh/uv/install.sh | bash
+
+## Linux
+curl -Ls https://astral.sh/uv/install.sh | bash
+
+# Step 2: Install Agentman
+uv tool install git+https://github.com/o3-cloud/agentman.git@main#egg=agentman-mcp
+
+# Step 3: Verify Installation
+uv --version
+agentman --help
+
+---
+
+# Next Steps & Advanced Usage
+
+After installation, you can start building and running agents. If you have specific questions, please answer the following prompts or choose from common topics below:
+
+## Common Questions
+- How do I create my first Agentfile?
+- How do I use YAML vs Dockerfile format?
+- How do I run an agent in a container?
+- How do I set environment variables or secrets?
+- How do I use example projects?
+- How do I update Agentman?
+
+## Advanced Topics
+- Multi-agent workflows
+- Structured output schemas
+- Parallel and chain orchestration
+- Integration with MCP servers
+
+Please specify your question or select a topic above to get detailed instructions.
