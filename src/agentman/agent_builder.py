@@ -101,7 +101,9 @@ class AgentBuilder:
 
         # Add a blank line if we have custom instructions
         custom_instructions = [
-            inst for inst in self.config.dockerfile_instructions if inst.instruction not in ["FROM", "EXPOSE", "ENTRYPOINT", "CMD"]
+            inst
+            for inst in self.config.dockerfile_instructions
+            if inst.instruction not in ["FROM", "EXPOSE", "ENTRYPOINT", "CMD"]
         ]
         if custom_instructions:
             lines.append("")
@@ -142,10 +144,12 @@ class AgentBuilder:
             lines.append("")
 
         # Add ENTRYPOINT instructions from custom dockerfile instructions first
-        entrypoint_instructions = [inst for inst in self.config.dockerfile_instructions if inst.instruction == "ENTRYPOINT"]
+        entrypoint_instructions = [
+            inst for inst in self.config.dockerfile_instructions if inst.instruction == "ENTRYPOINT"
+        ]
         if entrypoint_instructions:
             for instruction in entrypoint_instructions:
-                lines.append(instruction.to_dockerfile_line()) 
+                lines.append(instruction.to_dockerfile_line())
         elif self.config.entrypoint:
             # Custom entrypoint from config
             entrypoint_str = json.dumps(self.config.entrypoint)

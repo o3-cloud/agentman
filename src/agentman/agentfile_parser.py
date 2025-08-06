@@ -10,6 +10,7 @@ from .agentfile_models import (
     AgentfileConfig,
     Chain,
     DockerfileInstruction,
+    EvaluatorOptimizer,
     MCPServer,
     Orchestrator,
     OutputFormat,
@@ -121,6 +122,8 @@ class AgentfileParser:
             self._handle_parallel(parts)
         elif instruction == "ORCHESTRATOR":
             self._handle_orchestrator(parts)
+        elif instruction == "EVALUATOR_OPTIMIZER":
+            self._handle_evaluator_optimizer(parts)
         elif instruction == "SECRET":
             self._handle_secret(parts)
         # Dockerfile instructions - handle specially where needed
@@ -184,6 +187,10 @@ class AgentfileParser:
             "BASE_URL",
             "DEFAULT",
             "OUTPUT_FORMAT",
+            "GENERATOR",
+            "EVALUATOR",
+            "MIN_RATING",
+            "MAX_REFINEMENTS",
         ]:
             self._handle_sub_instruction(instruction, parts)
         # Handle ENV - could be Dockerfile instruction or sub-instruction
@@ -315,6 +322,17 @@ class AgentfileParser:
         name = self._unquote(parts[1])
         self.config.orchestrators[name] = Orchestrator(name=name)
         self.current_context = "orchestrator"
+        self.current_item = name
+
+    def _handle_evaluator_optimizer(self, parts: List[str]):
+        """Handle EVALUATOR_OPTIMIZER instruction."""
+        if len(parts) < 2:
+            raise ValueError("EVALUATOR_OPTIMIZER requires an evaluator-optimizer name")
+        name = self._unquote(parts[1])
+        self.config.evaluator_optimizers[name] = EvaluatorOptimizer(
+            name=name, generator="", evaluator="", min_rating="GOOD"
+        )
+        self.current_context = "evaluator_optimizer"
         self.current_item = name
 
     def _handle_secret(self, parts: List[str]):
@@ -480,6 +498,8 @@ class AgentfileParser:
             self._handle_parallel_sub_instruction(instruction, parts)
         elif self.current_context == "orchestrator":
             self._handle_orchestrator_sub_instruction(instruction, parts)
+        elif self.current_context == "evaluator_optimizer":
+            self._handle_evaluator_optimizer_sub_instruction(instruction, parts)
         elif self.current_context == "secret":
             self._handle_secret_sub_instruction(instruction, parts)
 
@@ -702,3 +722,55 @@ class AgentfileParser:
             if len(parts) < 2:
                 raise ValueError("DEFAULT requires true/false")
             orchestrator.default = self._unquote(parts[1]).lower() in ['true', '1', 'yes']
+
+    def _handle_evaluator_optimizer_sub_instruction(self, instruction: str, parts: List[str]):
+        """Handle sub-instructions for EVALUATOR_OPTIMIZER context."""
+        evaluator_optimizer = self.config.evaluator_optimizers[self.current_item]
+
+        if instruction == "GENERATOR":
+            if len(parts) < 2:
+                raise ValueError("GENERATOR requires an agent name")
+            evaluator_optimizer.generator = self._unquote(parts[1])
+        elif instruction == "EVALUATOR":
+            if len(parts) < 2:
+                raise ValueError("EVALUATOR requires an agent name")
+            evaluator_optimizer.evaluator = self._unquote(parts[1])
+        elif instruction == "MIN_RATING":
+            if len(parts) < 2:
+                raise ValueError("MIN_RATING requires a rating value")
+            min_rating = self._unquote(parts[1])
+            if min_rating in ['POOR', 'FAIR', 'GOOD', 'EXCELLENT']:
+                evaluator_optimizer.min_rating = min_rating
+            else:
+                try:
+                    rating_value = float(min_rating)
+                    if 0 <= rating_value <= 10:
+                        evaluator_optimizer.min_rating = rating_value
+                    else:
+                        raise ValueError(f"Invalid numeric min_rating: {rating_value}. Must be between 0 and 10")
+                except ValueError as exc:
+                    raise ValueError(
+                        f"MIN_RATING must be POOR/FAIR/GOOD/EXCELLENT or a number 0-10: {min_rating}"
+                    ) from exc
+        elif instruction == "MAX_REFINEMENTS":
+            if len(parts) < 2:
+                raise ValueError("MAX_REFINEMENTS requires a number")
+            try:
+                max_refinements = int(parts[1])
+                if max_refinements < 1:
+                    raise ValueError("MAX_REFINEMENTS must be a positive integer")
+                evaluator_optimizer.max_refinements = max_refinements
+            except ValueError as exc:
+                raise ValueError(f"Invalid number for MAX_REFINEMENTS: {parts[1]}") from exc
+        elif instruction == "INCLUDE_REQUEST":
+            if len(parts) < 2:
+                raise ValueError("INCLUDE_REQUEST requires true/false")
+            evaluator_optimizer.include_request = self._unquote(parts[1]).lower() in ['true', '1', 'yes']
+        elif instruction == "INSTRUCTION":
+            if len(parts) < 2:
+                raise ValueError("INSTRUCTION requires instruction text")
+            evaluator_optimizer.instruction = self._unquote(' '.join(parts[1:]))
+        elif instruction == "DEFAULT":
+            if len(parts) < 2:
+                raise ValueError("DEFAULT requires true/false")
+            evaluator_optimizer.default = self._unquote(parts[1]).lower() in ['true', '1', 'yes']

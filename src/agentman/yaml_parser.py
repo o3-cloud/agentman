@@ -10,6 +10,7 @@ from agentman.agentfile_models import (
     AgentfileConfig,
     Chain,
     DockerfileInstruction,
+    EvaluatorOptimizer,
     MCPServer,
     Orchestrator,
     OutputFormat,
@@ -74,11 +75,12 @@ class AgentfileYamlParser:
         # Parse all agents
         self._parse_agents(agents_to_parse)
 
-        # Parse routers, chains, parallels, and orchestrators
+        # Parse routers, chains, parallels, orchestrators, and evaluator_optimizers
         self._parse_routers(data.get('routers', []))
         self._parse_chains(data.get('chains', []))
         self._parse_parallels(data.get('parallels', []))
         self._parse_orchestrators(data.get('orchestrators', []))
+        self._parse_evaluator_optimizers(data.get('evaluator_optimizers', []))
 
         # Parse command
         self._parse_command(data.get('command', []))
@@ -350,6 +352,58 @@ class AgentfileYamlParser:
                 orchestrator.default = bool(orchestrator_config['default'])
 
             self.config.orchestrators[name] = orchestrator
+
+    def _parse_evaluator_optimizers(self, evaluator_optimizers_config: List[Dict[str, Any]]):
+        """Parse evaluator-optimizer configurations."""
+        for evaluator_optimizer_config in evaluator_optimizers_config:
+            if 'name' not in evaluator_optimizer_config:
+                raise ValueError("EvaluatorOptimizer must have a 'name' field")
+
+            name = evaluator_optimizer_config['name']
+            evaluator_optimizer = EvaluatorOptimizer(name=name, generator="", evaluator="", min_rating="GOOD")
+
+            if 'generator' not in evaluator_optimizer_config:
+                raise ValueError("EvaluatorOptimizer must have a 'generator' field")
+            evaluator_optimizer.generator = evaluator_optimizer_config['generator']
+
+            if 'evaluator' not in evaluator_optimizer_config:
+                raise ValueError("EvaluatorOptimizer must have an 'evaluator' field")
+            evaluator_optimizer.evaluator = evaluator_optimizer_config['evaluator']
+
+            if 'min_rating' not in evaluator_optimizer_config:
+                raise ValueError("EvaluatorOptimizer must have a 'min_rating' field")
+
+            min_rating = evaluator_optimizer_config['min_rating']
+            if isinstance(min_rating, str):
+                if min_rating not in ['POOR', 'FAIR', 'GOOD', 'EXCELLENT']:
+                    raise ValueError(
+                        f"Invalid string min_rating: {min_rating}. Must be one of: POOR, FAIR, GOOD, EXCELLENT"
+                    )
+                evaluator_optimizer.min_rating = min_rating
+            elif isinstance(min_rating, (int, float)):
+                if 0 <= min_rating <= 10:
+                    evaluator_optimizer.min_rating = float(min_rating)
+                else:
+                    raise ValueError(f"Invalid numeric min_rating: {min_rating}. Must be between 0 and 10")
+            else:
+                raise ValueError("min_rating must be a string (POOR, FAIR, GOOD, EXCELLENT) or numeric (0-10)")
+
+            if 'max_refinements' in evaluator_optimizer_config:
+                max_refinements = evaluator_optimizer_config['max_refinements']
+                if not isinstance(max_refinements, int) or max_refinements < 1:
+                    raise ValueError("max_refinements must be a positive integer")
+                evaluator_optimizer.max_refinements = max_refinements
+
+            if 'include_request' in evaluator_optimizer_config:
+                evaluator_optimizer.include_request = bool(evaluator_optimizer_config['include_request'])
+
+            if 'instruction' in evaluator_optimizer_config:
+                evaluator_optimizer.instruction = evaluator_optimizer_config['instruction']
+
+            if 'default' in evaluator_optimizer_config:
+                evaluator_optimizer.default = bool(evaluator_optimizer_config['default'])
+
+            self.config.evaluator_optimizers[name] = evaluator_optimizer
 
     def _parse_command(self, command_config: List[str]):
         """Parse command configuration."""
