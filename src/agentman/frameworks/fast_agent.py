@@ -47,6 +47,10 @@ class FastAgentFramework(BaseFramework):
         for orchestrator in self.config.orchestrators.values():
             lines.append(orchestrator.to_decorator_string(self.config.default_model))
 
+        # Evaluator-Optimizer definitions
+        for evaluator_optimizer in self.config.evaluator_optimizers.values():
+            lines.append(evaluator_optimizer.to_decorator_string())
+
         # Main function
         lines.extend(
             [

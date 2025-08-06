@@ -327,6 +327,48 @@ class Orchestrator:
 
 
 @dataclass
+class EvaluatorOptimizer:
+    """Represents an evaluator-optimizer workflow."""
+
+    name: str
+    generator: str
+    evaluator: str
+    min_rating: Union[str, float]
+    max_refinements: int = 3
+    include_request: bool = True
+    instruction: Optional[str] = None
+    default: bool = False
+
+    def to_decorator_string(self) -> str:
+        """Generate the @fast.evaluator_optimizer decorator string."""
+        params = [f'name="{self.name}"']
+
+        params.append(f'generator="{self.generator}"')
+        params.append(f'evaluator="{self.evaluator}"')
+
+        if isinstance(self.min_rating, str):
+            params.append(f'min_rating="{self.min_rating}"')
+        else:
+            params.append(f'min_rating={self.min_rating}')
+
+        if self.max_refinements != 3:
+            params.append(f"max_refinements={self.max_refinements}")
+
+        if not self.include_request:
+            params.append("include_request=False")
+
+        if self.instruction:
+            # Escape quotes in the instruction to prevent breaking the decorator
+            escaped_instruction = self.instruction.replace('"""', '\\"""')
+            params.append(f'instruction="""{escaped_instruction}"""')
+
+        if self.default:
+            params.append("default=True")
+
+        return "@fast.evaluator_optimizer(\n    " + ",\n    ".join(params) + "\n)"
+
+
+@dataclass
 class SecretValue:
     """Represents a secret with an inline value."""
 
@@ -375,6 +417,7 @@ class AgentfileConfig:
     chains: Dict[str, Chain] = field(default_factory=dict)
     parallels: Dict[str, Parallel] = field(default_factory=dict)
     orchestrators: Dict[str, Orchestrator] = field(default_factory=dict)
+    evaluator_optimizers: Dict[str, EvaluatorOptimizer] = field(default_factory=dict)
     secrets: List[SecretType] = field(default_factory=list)
     expose_ports: List[int] = field(default_factory=list)
     cmd: List[str] = field(default_factory=lambda: ["python", "agent.py"])

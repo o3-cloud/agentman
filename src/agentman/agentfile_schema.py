@@ -161,7 +161,9 @@ AGENTFILE_YAML_SCHEMA: Dict[str, Any] = {
                     },
                     "fan_in": {
                         "type": "string",
-                        "description": "Agent name to aggregate results (optional - default passthrough used if not specified)",
+                        "description": (
+                            "Agent name to aggregate results (optional - default passthrough used if not specified)"
+                        ),
                     },
                     "instruction": {
                         "type": "string",
@@ -218,6 +220,47 @@ AGENTFILE_YAML_SCHEMA: Dict[str, Any] = {
                 "additionalProperties": False,
             },
         },
+        "evaluator_optimizers": {
+            "type": "array",
+            "description": "List of evaluator-optimizer workflows",
+            "items": {
+                "type": "object",
+                "required": ["name", "generator", "evaluator", "min_rating"],
+                "properties": {
+                    "name": {"type": "string", "description": "Name of the evaluator-optimizer workflow"},
+                    "generator": {"type": "string", "description": "Agent name that generates initial responses"},
+                    "evaluator": {"type": "string", "description": "Agent name that evaluates output quality"},
+                    "min_rating": {
+                        "oneOf": [
+                            {"type": "string", "enum": ["POOR", "FAIR", "GOOD", "EXCELLENT"]},
+                            {"type": "number", "minimum": 0, "maximum": 10},
+                        ],
+                        "description": "Minimum acceptable quality score (string rating or numeric 0-10)",
+                    },
+                    "max_refinements": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "default": 3,
+                        "description": "Maximum number of refinement iterations",
+                    },
+                    "include_request": {
+                        "type": "boolean",
+                        "default": True,
+                        "description": "Whether to include original request in evaluator context",
+                    },
+                    "instruction": {
+                        "type": "string",
+                        "description": "Custom instruction for the evaluator-optimizer workflow",
+                    },
+                    "default": {
+                        "type": "boolean",
+                        "default": False,
+                        "description": "Whether this is the default workflow",
+                    },
+                },
+                "additionalProperties": False,
+            },
+        },
         "command": {
             "type": "array",
             "items": {"type": "string"},
@@ -225,9 +268,9 @@ AGENTFILE_YAML_SCHEMA: Dict[str, Any] = {
             "default": ["python", "agent.py"],
         },
         "entrypoint": {
-            "type": "array", 
+            "type": "array",
             "items": {"type": "string"},
-            "description": "Entrypoint command for the container"
+            "description": "Entrypoint command for the container",
         },
         "secrets": {
             "type": "array",
